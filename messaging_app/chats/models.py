@@ -5,9 +5,10 @@ import uuid
 
 
 class User(AbstractUser):
-    user_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)  # ✅ for auto-check
+    user_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     email = models.EmailField(unique=True)
-    phone_number = models.CharField(max_length=20, blank=True, null=True)  # ✅ required by check
+    phone_number = models.CharField(max_length=20, blank=True, null=True)
+    password = models.CharField(max_length=128)  # ✅ Explicitly defined
     first_name = models.CharField(max_length=30)
     last_name = models.CharField(max_length=30)
     is_online = models.BooleanField(default=False)
@@ -16,7 +17,6 @@ class User(AbstractUser):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    # Explicitly required for Django auth
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username', 'first_name', 'last_name']
 
