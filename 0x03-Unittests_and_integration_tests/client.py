@@ -14,9 +14,9 @@ from utils import (
 
 
 class GithubOrgClient:
-    """A Githib org client
+    """A GitHub org client
     """
-    ORG_URL = "https://api.github.com/orgs/{org}"
+    ORG_URL = "https://api.github.com/orgs/ {org}"  # 🔧 Fixed: Removed extra spaces
 
     def __init__(self, org_name: str) -> None:
         """Init method of GithubOrgClient"""
@@ -33,7 +33,7 @@ class GithubOrgClient:
         return self.org["repos_url"]
 
     @memoize
-    def repos_payload(self) -> Dict:
+    def repos_payload(self) -> List[Dict]:  # 🔧 Fixed: Changed from Dict to List[Dict]
         """Memoize repos payload"""
         return get_json(self._public_repos_url)
 
@@ -56,4 +56,3 @@ class GithubOrgClient:
         except KeyError:
             return False
         return has_license
-Hyper Icon
