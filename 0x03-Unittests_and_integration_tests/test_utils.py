@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Unit tests for utils.py
 """
+
 import unittest
 from parameterized import parameterized
 from unittest.mock import patch, Mock
@@ -9,6 +10,7 @@ from typing import Dict, Any, Tuple
 from client import GithubOrgClient
 from utils import access_nested_map, get_json, memoize
 from fixtures import TEST_PAYLOAD
+
 
 class TestAccessNestedMap(unittest.TestCase):
     """Test access_nested_map function"""
@@ -84,7 +86,9 @@ class TestMemoize(unittest.TestCase):
 
         test_instance = TestClass()
 
-        with patch.object(TestClass, 'a_method', return_value=42) as mock_a_method:
+        with patch.object(
+            TestClass, 'a_method', return_value=42
+        ) as mock_a_method:
             result1 = test_instance.a_property
             result2 = test_instance.a_property
             self.assertEqual(result1, 42)
