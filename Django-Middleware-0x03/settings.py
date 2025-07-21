@@ -85,7 +85,8 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
-# Cache configuration for rate limiting
+
+# Cache configuration
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
@@ -93,7 +94,8 @@ CACHES = {
     }
 }
 
-# Logging configuration
+
+# Logging
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -101,7 +103,7 @@ LOGGING = {
         'file': {
             'level': 'INFO',
             'class': 'logging.FileHandler',
-            'filename': 'requests.log',
+            'filename': os.path.join(BASE_DIR, 'requests.log'),
         },
     },
     'loggers': {
@@ -112,3 +114,8 @@ LOGGING = {
         },
     },
 }
+
+# Custom settings
+MESSAGE_RATE_LIMIT = 5  # messages
+MESSAGE_RATE_WINDOW = 60  # seconds
+RESTRICTED_HOURS = (18, 21)  # 6PM to 9PM

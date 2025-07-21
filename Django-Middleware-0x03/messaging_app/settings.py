@@ -123,6 +123,40 @@ CHANNEL_LAYERS = {
     },
 }
 
+# Cache configuration
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake',
+    }
+}
+
+
+# Logging
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(BASE_DIR, 'requests.log'),
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['file'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+    },
+}
+
+# Custom settings
+MESSAGE_RATE_LIMIT = 5  # messages
+MESSAGE_RATE_WINDOW = 60  # seconds
+RESTRICTED_HOURS = (18, 21)  # 6PM to 9PM
+
 
 # REST Framework
 REST_FRAMEWORK = {
