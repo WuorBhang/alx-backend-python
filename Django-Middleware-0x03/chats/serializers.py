@@ -1,14 +1,16 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from .models import Conversation, Message, ConversationParticipant, MessageReadStatus
+from django.db import models
 
 User = get_user_model()
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'is_online', 'last_seen', 'avatar']
-        read_only_fields = ['id', 'last_seen']
+        fields = ['user_id', 'username', 'email', 'first_name', 'last_name', 
+                 'is_online', 'last_seen', 'avatar']
+        read_only_fields = ['user_id', 'last_seen']
 
 class MessageSerializer(serializers.ModelSerializer):
     sender = UserSerializer(read_only=True)
@@ -17,15 +19,16 @@ class MessageSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Message
-        fields = ['id', 'conversation', 'sender', 'content', 'message_type', 'file_url', 
-                 'reply_to', 'is_edited', 'created_at', 'updated_at', 'read_by']
-        read_only_fields = ['id', 'sender', 'created_at', 'updated_at', 'is_edited']
+        fields = ['message_id', 'conversation', 'sender', 'message_body', 
+                 'message_type', 'file_url', 'reply_to', 'is_edited', 
+                 'sent_at', 'updated_at', 'read_by']
+        read_only_fields = ['message_id', 'sender', 'sent_at', 'updated_at', 'is_edited']
     
     def get_reply_to(self, obj):
         if obj.reply_to:
             return {
-                'id': obj.reply_to.id,
-                'content': obj.reply_to.content,
+                'message_id': obj.reply_to.message_id,
+                'message_body': obj.reply_to.message_body,
                 'sender': UserSerializer(obj.reply_to.sender).data
             }
         return None
@@ -59,9 +62,9 @@ class ConversationSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Conversation
-        fields = ['id', 'name', 'conversation_type', 'participants', 'created_by', 
-                 'created_at', 'updated_at', 'last_message', 'unread_count']
-        read_only_fields = ['id', 'created_by', 'created_at', 'updated_at']
+        fields = ['conversation_id', 'name', 'conversation_type', 'participants', 
+                 'created_by', 'created_at', 'updated_at', 'last_message', 'unread_count']
+        read_only_fields = ['conversation_id', 'created_by', 'created_at', 'updated_at']
     
     def get_unread_count(self, obj):
         user = self.context.get('request').user if self.context.get('request') else None
@@ -73,7 +76,7 @@ class ConversationSerializer(serializers.ModelSerializer):
             if participant.last_read_message:
                 return Message.objects.filter(
                     conversation=obj,
-                    created_at__gt=participant.last_read_message.created_at
+                    sent_at__gt=participant.last_read_message.sent_at
                 ).count()
             else:
                 return Message.objects.filter(conversation=obj).count()
@@ -87,7 +90,7 @@ class CreateConversationSerializer(serializers.Serializer):
     )
     name = serializers.CharField(max_length=100, required=False, allow_blank=True)
     conversation_type = serializers.ChoiceField(
-        choices=Conversation.CONVERSATION_TYPES,
+        choices=[('direct', 'Direct Message'), ('group', 'Group Chat')],
         default='direct'
     )
     
@@ -95,8 +98,7 @@ class CreateConversationSerializer(serializers.Serializer):
         if not value:
             raise serializers.ValidationError("At least one participant is required.")
         
-        # Check if all users exist
-        existing_users = User.objects.filter(id__in=value)
+        existing_users = User.objects.filter(user_id__in=value)
         if len(existing_users) != len(value):
             raise serializers.ValidationError("Some users do not exist.")
         
@@ -120,7 +122,7 @@ class CreateConversationSerializer(serializers.Serializer):
             other_user_id = participant_ids[0]
             existing_conversation = Conversation.objects.filter(
                 conversation_type='direct',
-                participants__in=[user.id, other_user_id]
+                participants__in=[user.user_id, other_user_id]
             ).annotate(
                 participant_count=models.Count('participants')
             ).filter(participant_count=2).first()
@@ -143,7 +145,7 @@ class CreateConversationSerializer(serializers.Serializer):
         
         # Add other participants
         for participant_id in participant_ids:
-            participant = User.objects.get(id=participant_id)
+            participant = User.objects.get(user_id=participant_id)
             ConversationParticipant.objects.create(
                 conversation=conversation,
                 user=participant,

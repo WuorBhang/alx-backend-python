@@ -1,12 +1,12 @@
 # requirements.txt
 
-Django==4.2.7
-djangorestframework==3.14.0
-django-cors-headers==4.3.1
-channels==4.0.0
-channels-redis==4.1.0
-redis==5.0.1
-python-dotenv==1.0.0
-djangorestframework-simplejwt==5.2.2
-psycopg2-binary==2.9.6
-
+Django
+djangorestframework
+django-cors-headers
+channels
+channels-redis
+redis
+python-dotenv
+djangorestframework-simplejwt
+psycopg2-binary --only-binary=:all
+Django_Filter
