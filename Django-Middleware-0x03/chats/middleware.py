@@ -26,10 +26,12 @@ class RestrictAccessByTimeMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        current_hour = datetime.datetime.now().hour
-        if current_hour < 18 or current_hour >= 21:  # 6PM to 9PM
-            if request.path.startswith('/chat/'):
-                return HttpResponseForbidden("Chat access is only allowed between 6PM and 9PM")
+        current_hour = datetime.now().hour
+
+        # Deny access if time is not between 6PM (18) and 9PM (21)
+        if current_hour < 18 or current_hour >= 21:
+            return HttpResponseForbidden("Access to chat is only allowed between 6PM and 9PM.")
+
         return self.get_response(request)
 
 class OffensiveLanguageMiddleware:
