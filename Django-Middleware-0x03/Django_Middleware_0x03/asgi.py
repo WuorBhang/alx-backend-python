@@ -16,7 +16,7 @@ from channels.security.websocket import AllowedHostsOriginValidator
 from chats.routing import websocket_urlpatterns
 
 # Set the default Django settings module
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'messaging_app.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'Django_Middleware_0x03.settings')
 
 # Initialize Django ASGI application early for HTTP requests
 django_asgi_app = get_asgi_application()

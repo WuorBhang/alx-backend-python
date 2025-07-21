@@ -26,3 +26,4 @@ Unauthorized: /api/
 "GET /static/admin/css/dashboard.css HTTP/1.1" 200 441
 "GET /static/admin/img/icon-changelink.svg HTTP/1.1" 200 380
 "GET /static/admin/img/icon-addlink.svg HTTP/1.1" 200 331
+Watching for file changes with StatReloader
