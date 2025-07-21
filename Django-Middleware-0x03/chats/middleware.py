@@ -53,20 +53,16 @@ class OffensiveLanguageMiddleware:
         
         return self.get_response(request)
 
-class RolePermissionMiddleware:
+class RolepermissionMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
-        self.restricted_paths = ['/chat/admin/', '/chat/moderation/']
 
     def __call__(self, request):
-        if any(request.path.startswith(path) for path in self.restricted_paths):
-            if not request.user.is_authenticated:
-                return HttpResponseForbidden("Authentication required")
-            if not (request.user.is_staff or request.user.is_superuser):
-                return HttpResponseForbidden("Admin or moderator privileges required")
+        # Example check — you can adjust it based on requirements
+        if request.path.startswith('/admin/') and not request.user.is_staff:
+            return HttpResponseForbidden("You don't have permission to access this page.")
         return self.get_response(request)
 
-# chats/middleware.py
 class CustomWebSocketMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
