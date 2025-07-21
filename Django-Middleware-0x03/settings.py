@@ -59,12 +59,13 @@ MIDDLEWARE = [
     # Custom middleware
     'chats.middleware.CustomWebSocketMiddleware',
     'chats.middleware.RequestLoggingMiddleware',
+    'chats.middleware.LogMiddleware',
     'chats.middleware.RestrictAccessByTimeMiddleware',
     'chats.middleware.OffensiveLanguageMiddleware',
     'chats.middleware.RolePermissionMiddleware',
 ]
 
-ROOT_URLCONF = "Django_Middleware_0x03.urls"
+ROOT_URLCONF = "urls"
 
 TEMPLATES = [
     {
@@ -82,8 +83,8 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'Django_Middleware_0x03.wsgi.application'
-ASGI_APPLICATION = 'Django_Middleware_0x03.asgi.application'
+WSGI_APPLICATION = 'wsgi.application'
+ASGI_APPLICATION = 'asgi.application'
 
 
 # Database
