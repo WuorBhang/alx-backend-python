@@ -1,3 +1,5 @@
+from django.http import HttpResponseForbidden
+from django.core.cache import cache
 import datetime
 import logging
 
@@ -18,3 +20,59 @@ class RequestLoggingMiddleware:
 
         response = self.get_response(request)
         return response
+
+
+class RestrictAccessByTimeMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        current_hour = datetime.datetime.now().hour
+        if current_hour < 18 or current_hour >= 21:  # 6PM to 9PM
+            if request.path.startswith('/chat/'):  # Only restrict chat paths
+                return HttpResponseForbidden("Chat access is only allowed between 6PM and 9PM")
+        
+        return self.get_response(request)
+
+
+
+class OffensiveLanguageMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+        self.limit = 5  # 5 messages
+        self.window = 60  # 60 seconds
+
+    def __call__(self, request):
+        if request.method == 'POST' and request.path.startswith('/messages/'):
+            ip = request.META.get('REMOTE_ADDR')
+            key = f"message_limit_{ip}"
+            
+            # Get current count
+            current = cache.get(key, 0)
+            
+            if current >= self.limit:
+                return HttpResponseForbidden("Message rate limit exceeded. Please try again later.")
+            
+            # Increment count
+            cache.set(key, current + 1, self.window)
+        
+        return self.get_response(request)
+
+
+class RolePermissionMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+        self.restricted_paths = [
+            '/chat/admin/',
+            '/chat/moderation/'
+        ]
+
+    def __call__(self, request):
+        if any(request.path.startswith(path) for path in self.restricted_paths):
+            if not request.user.is_authenticated:
+                return HttpResponseForbidden("Authentication required")
+            
+            if not (request.user.is_staff or request.user.is_superuser):
+                return HttpResponseForbidden("Admin or moderator privileges required")
+        
+        return self.get_response(request)
