@@ -63,3 +63,21 @@ class RolePermissionMiddleware:
             if not (request.user.is_staff or request.user.is_superuser):
                 return HttpResponseForbidden("Admin or moderator privileges required")
         return self.get_response(request)
+
+# chats/middleware.py
+class CustomWebSocketMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        # Middleware logic for HTTP requests
+        response = self.get_response(request)
+        return response
+
+    def process_view(self, request, view_func, view_args, view_kwargs):
+        # Optional: Logic to process before a view is called
+        pass
+
+    async def process_websocket(self, scope, receive, send):
+        # Middleware logic for WebSocket connections
+        pass
