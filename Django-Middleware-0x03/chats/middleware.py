@@ -87,4 +87,8 @@ class LogMiddleware:
     def __call__(self, request):
         print(f"Request Method: {request.method} | Path: {request.path}")
         response = self.get_response(request)
+<<<<<<< HEAD
         return response
+=======
+        return response
+>>>>>>> e7ebee07b92fb9c6a3fa560f522960f1d726ab71
