@@ -26,10 +26,12 @@ class RestrictAccessByTimeMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        current_hour = datetime.datetime.now().hour
-        if current_hour < 18 or current_hour >= 21:  # 6PM to 9PM
-            if request.path.startswith('/chat/'):
-                return HttpResponseForbidden("Chat access is only allowed between 6PM and 9PM")
+        current_hour = datetime.now().hour
+
+        # Deny access if time is not between 6PM (18) and 9PM (21)
+        if current_hour < 18 or current_hour >= 21:
+            return HttpResponseForbidden("Access to chat is only allowed between 6PM and 9PM.")
+
         return self.get_response(request)
 
 class OffensiveLanguageMiddleware:
@@ -51,15 +53,38 @@ class OffensiveLanguageMiddleware:
         
         return self.get_response(request)
 
-class RolePermissionMiddleware:
+class RolepermissionMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
-        self.restricted_paths = ['/chat/admin/', '/chat/moderation/']
 
     def __call__(self, request):
-        if any(request.path.startswith(path) for path in self.restricted_paths):
-            if not request.user.is_authenticated:
-                return HttpResponseForbidden("Authentication required")
-            if not (request.user.is_staff or request.user.is_superuser):
-                return HttpResponseForbidden("Admin or moderator privileges required")
+        # Example check — you can adjust it based on requirements
+        if request.path.startswith('/admin/') and not request.user.is_staff:
+            return HttpResponseForbidden("You don't have permission to access this page.")
         return self.get_response(request)
+
+class CustomWebSocketMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        # Middleware logic for HTTP requests
+        response = self.get_response(request)
+        return response
+
+    def process_view(self, request, view_func, view_args, view_kwargs):
+        # Optional: Logic to process before a view is called
+        pass
+
+    async def process_websocket(self, scope, receive, send):
+        # Middleware logic for WebSocket connections
+        pass
+
+class LogMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        print(f"Request Method: {request.method} | Path: {request.path}")
+        response = self.get_response(request)
+        return response
