@@ -28,3 +28,21 @@ Unauthorized: /api/
 "GET /static/admin/img/icon-addlink.svg HTTP/1.1" 200 331
 Watching for file changes with StatReloader
 Watching for file changes with StatReloader
+2025-07-28 16:28:13.473732 - User: Anonymous - Path: /
+2025-07-28 16:28:15.252070 - User: Anonymous - Path: /favicon.ico
+2025-07-28 16:30:44.390300 - User: Anonymous - Path: /
+2025-07-28 16:30:45.361119 - User: Anonymous - Path: /favicon.ico
+2025-07-28 16:31:51.640840 - User: Anonymous - Path: /
+2025-07-28 16:31:52.164867 - User: Anonymous - Path: /favicon.ico
+2025-07-28 16:32:35.123927 - User: Anonymous - Path: /
+2025-07-28 16:32:35.643590 - User: Anonymous - Path: /favicon.ico
+2025-07-28 16:32:41.278793 - User: Anonymous - Path: /api/auctions/
+2025-07-28 16:32:41.778634 - User: Anonymous - Path: /favicon.ico
+2025-07-28 16:32:48.265778 - User: Anonymous - Path: /api/
+2025-07-28 16:32:48.749110 - User: Anonymous - Path: /favicon.ico
+2025-07-28 16:33:18.907066 - User: Anonymous - Path: /api/
+2025-07-28 16:33:19.632845 - User: Anonymous - Path: /favicon.ico
+2025-07-28 16:34:12.620400 - User: Anonymous - Path: /api/
+2025-07-28 16:34:13.302862 - User: Anonymous - Path: /favicon.ico
+2025-07-28 16:38:35.109351 - User: Anonymous - Path: /api/
+2025-07-28 16:38:35.871815 - User: Anonymous - Path: /favicon.ico
