@@ -53,7 +53,7 @@ class OffensiveLanguageMiddleware:
         
         return self.get_response(request)
 
-class RolepermissionMiddleware:
+class RolePermissionMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
 
