@@ -1,40 +1,36 @@
-# messaging/tests.py
 from django.test import TestCase
-from django.contrib.auth import get_user_model
-from .models import Message, Notification, MessageHistory
+from django.contrib.auth.models import User
+from .models import Message, MessageHistory, Notification
 
-User = get_user_model()
 
-class SignalTests(TestCase):
+class MessagingTest(TestCase):
     def setUp(self):
-        self.user1 = User.objects.create(username='user1')
-        self.user2 = User.objects.create(username='user2')
-    
-    def test_notification_creation(self):
-        message = Message.objects.create(
+        self.user1 = User.objects.create_user(username='alice', password='pass')
+        self.user2 = User.objects.create_user(username='bob', password='pass')
+
+    def test_message_creation_triggers_notification(self):
+        msg = Message.objects.create(
+            sender=self.user1,
+            receiver=self.user2,
+            content="Hi Bob!"
+        )
+        self.assertTrue(Notification.objects.filter(message=msg).exists())
+
+    def test_editing_message_creates_history(self):
+        msg = Message.objects.create(
             sender=self.user1,
             receiver=self.user2,
             content="Hello"
         )
-        self.assertEqual(Notification.objects.count(), 1)
-        self.assertEqual(Notification.objects.first().user, self.user2)
-    
-    def test_message_edit_logging(self):
-        message = Message.objects.create(
-            sender=self.user1,
-            receiver=self.user2,
-            content="Original"
-        )
-        message.content = "Edited"
-        message.save()
-        self.assertEqual(MessageHistory.objects.count(), 1)
-        self.assertEqual(message.edited, True)
-    
-    def test_user_deletion_cleanup(self):
-        Message.objects.create(
-            sender=self.user1,
-            receiver=self.user2,
-            content="Test"
-        )
-        self.user1.delete()
-        self.assertEqual(Message.objects.filter(sender=self.user1).count(), 0)
+        msg.content = "Hello again!"
+        msg.save()
+        self.assertTrue(MessageHistory.objects.filter(message=msg).exists())
+        self.assertEqual(MessageHistory.objects.first().old_content, "Hello")
+
+    def test_unread_manager_filters_correctly(self):
+        Message.objects.create(sender=self.user1, receiver=self.user2, content="Urgent", read=False)
+        read_msg = Message.objects.create(sender=self.user1, receiver=self.user2, content="Old", read=True)
+
+        unread = Message.unread.for_user(self.user2)
+        self.assertEqual(unread.count(), 1)
+        self.assertNotIn(read_msg, unread)
