@@ -1,0 +1,13 @@
+<!-- templates/messaging/reply_form.html -->
+
+<h2>Reply to Message</h2>
+
+<p><strong>Original:</strong> {{ parent.content }}</p>
+
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Send Reply</button>
+</form>
+
+<a href="{% url 'conversation_detail' conversation.id %}">← Back to Conversation</a>

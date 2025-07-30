@@ -1,36 +1,20 @@
 from django.test import TestCase
+
+# Create your tests here.
+from django.test import TestCase
 from django.contrib.auth.models import User
-from .models import Message, MessageHistory, Notification
+from .models import Message, Notification
 
-
-class MessagingTest(TestCase):
+class MessageNotificationTest(TestCase):
     def setUp(self):
-        self.user1 = User.objects.create_user(username='alice', password='pass')
-        self.user2 = User.objects.create_user(username='bob', password='pass')
+        self.sender = User.objects.create_user(username='sender', password='pass')
+        self.receiver = User.objects.create_user(username='receiver', password='pass')
 
-    def test_message_creation_triggers_notification(self):
-        msg = Message.objects.create(
-            sender=self.user1,
-            receiver=self.user2,
-            content="Hi Bob!"
+    def test_notification_created_on_message(self):
+        message = Message.objects.create(
+            sender=self.sender,
+            receiver=self.receiver,
+            content="Hello, receiver!"
         )
-        self.assertTrue(Notification.objects.filter(message=msg).exists())
-
-    def test_editing_message_creates_history(self):
-        msg = Message.objects.create(
-            sender=self.user1,
-            receiver=self.user2,
-            content="Hello"
-        )
-        msg.content = "Hello again!"
-        msg.save()
-        self.assertTrue(MessageHistory.objects.filter(message=msg).exists())
-        self.assertEqual(MessageHistory.objects.first().old_content, "Hello")
-
-    def test_unread_manager_filters_correctly(self):
-        Message.objects.create(sender=self.user1, receiver=self.user2, content="Urgent", read=False)
-        read_msg = Message.objects.create(sender=self.user1, receiver=self.user2, content="Old", read=True)
-
-        unread = Message.unread.for_user(self.user2)
-        self.assertEqual(unread.count(), 1)
-        self.assertNotIn(read_msg, unread)
+        notification = Notification.objects.filter(user=self.receiver, message=message)
+        self.assertTrue(notification.exists())

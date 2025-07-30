@@ -1,0 +1,36 @@
+<!-- templates/messaging/conversation_detail.html -->
+
+<h2>Conversation {{ conversation.id }}</h2>
+
+{% for message in messages %}
+  <div style="margin-bottom: 10px;">
+    <strong>{{ message.sender.username }}</strong>: {{ message.content }} <br>
+    <small>{{ message.timestamp }}</small>
+
+    {% if message.replies.all %}
+      <div style="margin-left: 30px;">
+        {% for reply in message.replies.all %}
+          <strong>{{ reply.sender.username }}</strong>: {{ reply.content }} <br>
+          <a href="{% url 'reply_to_message' conversation.id message.id %}">Reply</a>
+          <small>{{ reply.timestamp }}</small>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+{% endfor %}
+
+
+{% for message in messages %}
+    <div>
+        <strong>{{ message.sender }}:</strong> {{ message.content }}
+        <small>{{ message.timestamp }}</small>
+        <a href="{% url 'reply_to_message' conversation.id message.id %}">Reply</a>
+
+        {% for reply in message.replies.all %}
+            <div style="margin-left: 30px;">
+                <strong>{{ reply.sender }}:</strong> {{ reply.content }}
+                <small>{{ reply.timestamp }}</small>
+            </div>
+        {% endfor %}
+    </div>
+{% endfor %}

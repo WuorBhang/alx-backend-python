@@ -1,68 +1,63 @@
-# messaging/models.py
 from django.db import models
-from django.contrib.auth import get_user_model
-
-User = get_user_model()
-
+from django.contrib.auth.models import User
+from .managers import UnreadMessagesManager
 
 class Conversation(models.Model):
-    CONVERSATION_TYPES = [
-        ('direct', 'Direct Message'),
-        ('group', 'Group Chat'),
-    ]
-
-    name = models.CharField(max_length=255, blank=True, null=True)
-    conversation_type = models.CharField(max_length=20, choices=CONVERSATION_TYPES, default='direct')
-    created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_conversations')
+    participants = models.ManyToManyField(User)
+    topic = models.CharField(max_length=255, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+
+    parent_message = models.ForeignKey(
+        'self',
+        null=True,
+        blank=True,
+        related_name='replies',
+        on_delete=models.CASCADE
+    )
+
 
     def __str__(self):
-        return self.name or f"{self.conversation_type.capitalize()} {self.id}"
+        return f"Conversation {self.pk}"
 
 
-class ConversationParticipant(models.Model):
-    conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE, related_name='participants_details')
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    joined_at = models.DateTimeField(auto_now_add=True)
-    is_admin = models.BooleanField(default=False)
-    last_read_message = models.ForeignKey('Message', on_delete=models.SET_NULL, null=True, blank=True)
-
-    class Meta:
-        unique_together = ('conversation', 'user')
-
-    def __str__(self):
-        return f"{self.user.username} in {self.conversation}"
+class UnreadMessagesManager(models.Manager):
+    def for_user(self, user):
+        return self.filter(receiver=user, read=False).only('id', 'sender', 'content', 'timestamp')
 
 
 class Message(models.Model):
-    MESSAGE_TYPES = [
-        ('text', 'Text'),
-        ('image', 'Image'),
-        ('file', 'File'),
-    ]
-
-    conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE, related_name='messages')
-    sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_messages')
+    sender = models.ForeignKey(User, related_name='sent_messages', on_delete=models.CASCADE)
+    receiver = models.ForeignKey(User, related_name='received_messages', on_delete=models.CASCADE)
+    conversation = models.ForeignKey('messaging.Conversation', on_delete=models.CASCADE, null=True)
     content = models.TextField()
-    message_type = models.CharField(max_length=10, choices=MESSAGE_TYPES, default='text')
-    file_url = models.URLField(blank=True, null=True)
     timestamp = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    is_edited = models.BooleanField(default=False)
-    reply_to = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='replies')
+    edited = models.BooleanField(default=False)
+    edited_by = models.ForeignKey(User, null=True, blank=True, related_name='edited_messages', on_delete=models.SET_NULL)
+    read = models.BooleanField(default=False)  # ✅ new field
+
+    parent_message = models.ForeignKey('self', null=True, blank=True, related_name='replies', on_delete=models.CASCADE)
+    
+    objects = models.Manager()  # default
+    unread = UnreadMessagesManager()  # ✅ custom manager
 
     def __str__(self):
-        return f"{self.sender.username}: {self.content[:30]}"
+        return f'{self.sender}: {self.content[:30]}'
 
 
-class MessageReadStatus(models.Model):
-    message = models.ForeignKey(Message, on_delete=models.CASCADE, related_name='read_statuses')
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    read_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        unique_together = ('message', 'user')
+class MessageHistory(models.Model):
+    message = models.ForeignKey(Message, on_delete=models.CASCADE, related_name='history')
+    old_content = models.TextField()
+    edited_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.user.username} read msg {self.message.id}"
+        return f'History of Message ID {self.message.id} edited at {self.edited_at}'
+
+
+class Notification(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)  # receiver
+    message = models.ForeignKey(Message, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_read = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f'Notification for {self.user} - Message ID {self.message.id}'

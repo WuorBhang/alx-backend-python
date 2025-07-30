@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Message Details</title>
+</head>
+<body>
+    <h2>Message Details</h2>
+
+    <p><strong>Sender:</strong> {{ message.sender }}</p>
+    <p><strong>Receiver:</strong> {{ message.receiver }}</p>
+    <p><strong>Content:</strong> {{ message.content }}</p>
+    <p><strong>Timestamp:</strong> {{ message.timestamp }}</p>
+    <p><strong>Edited:</strong> {{ message.edited }}</p>
+
+    {% if history %}
+        <h3>Edit History</h3>
+        <ul>
+            {% for edit in history %}
+                <li>
+                    <strong>Edited At:</strong> {{ edit.edited_at }}<br>
+                    <strong>Old Content:</strong> {{ edit.old_content }}
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No edit history.</p>
+    {% endif %}
+</body>
+</html>
+
+<form action="{% url 'delete_account' %}" method="post">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger">Delete My Account</button>
+</form>
+
