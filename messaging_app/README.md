@@ -34,7 +34,7 @@ These volumes are preserved even when containers are stopped. To completely remo
 2. **Set up environment variables**:
 
     ```bash
-    cp .env.example .env
+    cp .env.example into .env that you whave to create in your machine
     ```
 
     Edit the `.env` file with your preferred database credentials and settings.
