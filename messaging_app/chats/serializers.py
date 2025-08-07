@@ -1,153 +1,133 @@
-from rest_framework import serializers
+# messaging_app/chats/serializers.py
+
+"""
+Serializers for User, Conversation, and Message models
+"""
+
 from django.contrib.auth import get_user_model
-from .models import Conversation, Message, ConversationParticipant, MessageReadStatus
+from rest_framework import serializers
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+
+from .models import Conversation, Message
 
 User = get_user_model()
 
+
 class UserSerializer(serializers.ModelSerializer):
+    """Serializer for User model"""
+
+    user_id = serializers.UUIDField(source="id", read_only=True)
+    first_name = serializers.CharField()
+    last_name = serializers.CharField()
+    email = serializers.CharField()
+    phone_number = serializers.CharField(allow_blank=True, required=False)
+    role = serializers.CharField()
+
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'is_online', 'last_seen', 'avatar']
-        read_only_fields = ['id', 'last_seen']
+        fields = [
+            "user_id",
+            "email",
+            "first_name",
+            "last_name",
+            "phone_number",
+            "role",
+            "created_at",
+        ]
+        read_only_fields = ["user_id", "created_at"]
+        extra_kwargs = {"password": {"write_only": True, "min_length": 8}}
+
+    def create(self, validated_data):
+        """Create and return a new user with encrypted password"""
+        return User.objects.create_user(**validated_data)
+
+    def update(self, instance, validated_data):
+        """Update a user, setting the password correctly if provided"""
+        password = validated_data.pop("password", None)
+        user = super().update(instance, validated_data)
+
+        if password:
+            user.set_password(password)
+            user.save()
+        return user
+
+
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    """
+    Custom token serializer to include user data in the token response
+    """
+
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        if not self.user:
+            raise serializers.ValidationError("User not found")
+        refresh = self.get_token(self.user)
+
+        # Add custom claims
+        data["refresh"] = str(refresh)
+        data["access"] = str(refresh.access_token)
+        data["user"] = UserSerializer(self.user).data
+
+        return data
+
 
 class MessageSerializer(serializers.ModelSerializer):
+    """Serializer for Message model"""
+
+    message_id = serializers.UUIDField(source="id", read_only=True)
     sender = UserSerializer(read_only=True)
-    reply_to = serializers.SerializerMethodField()
-    read_by = serializers.SerializerMethodField()
-    
+    message_body = serializers.CharField()
+
     class Meta:
         model = Message
-        fields = ['id', 'conversation', 'sender', 'content', 'message_type', 'file_url', 
-                 'reply_to', 'is_edited', 'created_at', 'updated_at', 'read_by']
-        read_only_fields = ['id', 'sender', 'created_at', 'updated_at', 'is_edited']
-    
-    def get_reply_to(self, obj):
-        if obj.reply_to:
-            return {
-                'id': obj.reply_to.id,
-                'content': obj.reply_to.content,
-                'sender': UserSerializer(obj.reply_to.sender).data
-            }
-        return None
-    
-    def get_read_by(self, obj):
-        read_statuses = MessageReadStatus.objects.filter(message=obj).select_related('user')
-        return [
-            {
-                'user': UserSerializer(status.user).data,
-                'read_at': status.read_at
-            }
-            for status in read_statuses
-        ]
+        fields = ["message_id", "sender", "message_body", "sent_at"]
+        read_only_fields = ["message_id", "sent_at", "sender"]
 
-class ConversationParticipantSerializer(serializers.ModelSerializer):
-    user = UserSerializer(read_only=True)
-    
-    class Meta:
-        model = ConversationParticipant
-        fields = ['id', 'user', 'joined_at', 'is_admin', 'last_read_message']
 
-class ConversationSerializer(serializers.ModelSerializer):
-    participants = ConversationParticipantSerializer(
-        source='conversationparticipant_set', 
-        many=True, 
-        read_only=True
-    )
-    last_message = MessageSerializer(read_only=True)
-    created_by = UserSerializer(read_only=True)
-    unread_count = serializers.SerializerMethodField()
-    
+class ConversationListSerializer(serializers.ModelSerializer):
+    conversation_id = serializers.UUIDField(source="id", read_only=True)
+    participants = UserSerializer(many=True, read_only=True)
+    last_message = serializers.SerializerMethodField()
+
     class Meta:
         model = Conversation
-        fields = ['id', 'name', 'conversation_type', 'participants', 'created_by', 
-                 'created_at', 'updated_at', 'last_message', 'unread_count']
-        read_only_fields = ['id', 'created_by', 'created_at', 'updated_at']
-    
-    def get_unread_count(self, obj):
-        user = self.context.get('request').user if self.context.get('request') else None
-        if not user:
-            return 0
-        
-        try:
-            participant = ConversationParticipant.objects.get(conversation=obj, user=user)
-            if participant.last_read_message:
-                return Message.objects.filter(
-                    conversation=obj,
-                    created_at__gt=participant.last_read_message.created_at
-                ).count()
-            else:
-                return Message.objects.filter(conversation=obj).count()
-        except ConversationParticipant.DoesNotExist:
-            return 0
+        fields = ["conversation_id", "participants", "created_at", "last_message"]
+        read_only_fields = ["conversation_id", "created_at"]
 
-class CreateConversationSerializer(serializers.Serializer):
-    participant_ids = serializers.ListField(
-        child=serializers.UUIDField(),
-        write_only=True
+    def get_last_message(self, obj):
+        last_message = obj.messages.order_by("-sent_at").first()
+        if last_message:
+            return MessageSerializer(last_message).data
+        return None
+
+
+class ConversationDetailSerializer(serializers.ModelSerializer):
+    """Serializer for Conversation model with nested participants and messages"""
+
+    conversation_id = serializers.UUIDField(source="id", read_only=True)
+    participants = UserSerializer(many=True, read_only=True)
+    messages = MessageSerializer(many=True, read_only=True)
+
+    # Field for writing participants (using IDs)
+    participant_ids = serializers.PrimaryKeyRelatedField(
+        many=True, queryset=User.objects.all(), write_only=True, source="participants"
     )
-    name = serializers.CharField(max_length=100, required=False, allow_blank=True)
-    conversation_type = serializers.ChoiceField(
-        choices=Conversation.CONVERSATION_TYPES,
-        default='direct'
-    )
-    
+
+    class Meta:
+        model = Conversation
+        fields = [
+            "conversation_id",
+            "participants",
+            "participant_ids",
+            "created_at",
+            "messages",
+        ]
+        read_only_fields = ["conversation_id", "created_at", "messages"]
+
     def validate_participant_ids(self, value):
-        if not value:
-            raise serializers.ValidationError("At least one participant is required.")
-        
-        # Check if all users exist
-        existing_users = User.objects.filter(id__in=value)
-        if len(existing_users) != len(value):
-            raise serializers.ValidationError("Some users do not exist.")
-        
-        return value
-    
-    def validate(self, data):
-        if data.get('conversation_type') == 'direct' and len(data.get('participant_ids', [])) != 1:
-            raise serializers.ValidationError("Direct conversations must have exactly one other participant.")
-        
-        if data.get('conversation_type') == 'group' and len(data.get('participant_ids', [])) < 2:
-            raise serializers.ValidationError("Group conversations must have at least 2 participants.")
-        
-        return data
-    
-    def create(self, validated_data):
-        participant_ids = validated_data.pop('participant_ids')
-        user = self.context['request'].user
-        
-        # For direct messages, check if conversation already exists
-        if validated_data.get('conversation_type') == 'direct':
-            other_user_id = participant_ids[0]
-            existing_conversation = Conversation.objects.filter(
-                conversation_type='direct',
-                participants__in=[user.id, other_user_id]
-            ).annotate(
-                participant_count=models.Count('participants')
-            ).filter(participant_count=2).first()
-            
-            if existing_conversation:
-                return existing_conversation
-        
-        # Create new conversation
-        conversation = Conversation.objects.create(
-            created_by=user,
-            **validated_data
-        )
-        
-        # Add creator as participant
-        ConversationParticipant.objects.create(
-            conversation=conversation,
-            user=user,
-            is_admin=True
-        )
-        
-        # Add other participants
-        for participant_id in participant_ids:
-            participant = User.objects.get(id=participant_id)
-            ConversationParticipant.objects.create(
-                conversation=conversation,
-                user=participant,
-                is_admin=False
+        """Ensure at least 2 participants in a conversation"""
+        if len(value) < 2:
+            raise serializers.ValidationError(
+                "A conversation must have at least 2 participants."
             )
-        
-        return conversation
+        return value

@@ -1,59 +1,68 @@
-# chats/permissions.py
+# messaging_app/chats/permissions.py
+
 from rest_framework import permissions
-from .models import Conversation, Message
 
-class IsAuthenticatedParticipant(permissions.BasePermission):
+
+class IsOwnerOrReadOnly(permissions.BasePermission):
     """
-    Comprehensive permission class that:
-    1. Requires authentication for all requests
-    2. Checks participant status for object access
-    3. Handles different HTTP methods explicitly
-    4. Provides owner checks for message modifications
+    Custom permission to only allow owners of an object to edit it.
     """
 
-    def has_permission(self, request, view):
-        # First and foremost - require authentication
-        if not request.user.is_authenticated:
-            return False
-
-        # Allow POST requests to create new conversations/messages
-        if request.method == 'POST':
+    def has_object_permission(self, request, view, obj) -> bool:
+        # Read permissions are allowed to any request,
+        # so we'll always allow GET, HEAD or OPTIONS requests.
+        if request.method in permissions.SAFE_METHODS:
             return True
 
-        # For other methods, defer to object-level permissions
-        return True
+        # Write permissions are only allowed to the owner of the conversation/message.
+        if hasattr(obj, "sender") and obj.sender == request.user:
+            return True
+        if hasattr(obj, "participants") and request.user in obj.participants.all():
+            return True
+        return False
+
+
+class IsParticipantOfConversation(permissions.BasePermission):
+    """
+    Custom permission to only allow participants of a conversation to access it.
+    """
+
+    message = "You must be a participant of this conversation."
+
+    def has_permission(self, request, view):
+        # Allow GET, OPTIONS, or HEAD requests for listing conversations
+        if request.method in permissions.SAFE_METHODS:
+            return request.user.is_authenticated
+
+        # For other methods (POST, PUT, PATCH, DELETE), require authentication
+        return request.user.is_authenticated
 
     def has_object_permission(self, request, view, obj):
-        # Double-check authentication (defensive programming)
-        if not request.user.is_authenticated:
-            return False
-
-        # Check participant status
-        is_participant = self._is_participant(request.user, obj)
-
-        # SAFE_METHODS (GET, HEAD, OPTIONS)
+        # Allow read permissions to any authenticated user who is a participant
         if request.method in permissions.SAFE_METHODS:
-            return is_participant
+            return request.user in obj.participants.all()
 
-        # Modification methods (PUT, PATCH, DELETE)
-        elif request.method in ['PUT', 'PATCH', 'DELETE']:
-            # For messages, require ownership AND participant status
-            if isinstance(obj, Message):
-                return (request.user == obj.sender) and is_participant
-            # For conversations, just require participant status
-            return is_participant
+        # For write permissions (PUT, PATCH, DELETE), check if the user is a participant
+        # and the request is for a message (not a conversation)
+        if hasattr(obj, "conversation"):  # This is a Message object
+            return request.user in obj.conversation.participants.all()
 
-        return False
-
-    def _is_participant(self, user, obj):
-        """Helper method to check participant status"""
-        if isinstance(obj, Conversation):
-            return user in obj.participants.all()
-        elif isinstance(obj, Message):
-            return user in obj.conversation.participants.all()
-        return False
+        # For conversation objects, check if user is a participant
+        return request.user in obj.participants.all()
 
 
-# Aliases for backward compatibility and specific use cases
-IsParticipant = IsAuthenticatedParticipant  # Simple participant check
-IsOwnerOrParticipant = IsAuthenticatedParticipant  # Includes owner checks for messages
+class IsMessageOwnerOrReadOnly(permissions.BasePermission):
+    """
+    Custom permission to only allow owners of a message to edit or delete it.
+    """
+
+    message = "You must be the owner of this message to perform this action."
+
+    def has_object_permission(self, request, view, obj):
+        # Read permissions are allowed to any request,
+        # so we'll always allow GET, HEAD or OPTIONS requests.
+        if request.method in permissions.SAFE_METHODS:
+            return request.user in obj.conversation.participants.all()
+
+        # Write permissions are only allowed to the owner of the message.
+        return obj.sender == request.user
