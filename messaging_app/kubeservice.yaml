@@ -1,0 +1,14 @@
+# kubeservice.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: django-service
+spec:
+  type: ClusterIP
+  selector:
+    app: django-messaging
+    version: "1.0"  # Initially points to blue
+  ports:
+    - protocol: TCP
+      port: 8000
+      targetPort: 8000

@@ -1,0 +1,24 @@
+#!/bin/bash
+# kubctl-0x02 - Manages blue-green deployment
+
+# Apply blue and green deployments
+echo "Applying blue deployment..."
+kubectl apply -f blue_deployment.yaml
+
+echo "Applying green deployment..."
+kubectl apply -f green_deployment.yaml
+
+# Apply service
+echo "Applying service configuration..."
+kubectl apply -f kubeservice.yaml
+
+# Check logs for errors
+echo "Checking green deployment logs..."
+POD_NAME=$(kubectl get pods -l version=2.0 -o jsonpath='{.items[0].metadata.name}')
+kubectl logs $POD_NAME
+
+# Switch traffic to green (version 2.0)
+echo "Switching traffic to green deployment..."
+kubectl patch service django-service -p '{"spec":{"selector":{"version":"2.0"}}}'
+
+echo "Blue-green deployment complete!"

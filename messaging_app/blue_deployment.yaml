@@ -1,0 +1,25 @@
+# blue_deployment.yaml (original deployment.yaml renamed)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: django-blue
+  labels:
+    app: django-messaging
+    version: "1.0"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: django-messaging
+      version: "1.0"
+  template:
+    metadata:
+      labels:
+        app: django-messaging
+        version: "1.0"
+    spec:
+      containers:
+      - name: django-app
+        image: your-django-image:1.0
+        ports:
+        - containerPort: 8000
