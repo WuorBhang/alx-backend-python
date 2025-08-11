@@ -1,0 +1,25 @@
+#!/bin/bash
+# kubctl-0x03 - Performs rolling update
+
+# Apply the updated deployment
+echo "Applying rolling update..."
+kubectl apply -f blue_deployment.yaml
+
+# Monitor rollout status
+echo "Monitoring rollout..."
+kubectl rollout status deployment/django-blue
+
+# Continuously test the app during update
+echo "Testing app during update..."
+SERVICE_URL=$(minikube service django-service --url)
+for i in {1..30}; do
+    response=$(curl -s -o /dev/null -w "%{http_code}" $SERVICE_URL)
+    echo "Request $i: HTTP $response"
+    sleep 2
+done
+
+# Verify rollout complete
+echo "Verifying rollout..."
+kubectl get pods -l app=django-messaging
+
+echo "Rolling update complete!"
