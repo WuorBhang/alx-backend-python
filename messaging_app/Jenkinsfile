@@ -1,0 +1,82 @@
+pipeline {
+    agent any
+    
+    tools {
+        python "Python 3.10"
+    }
+    
+    environment {
+        DB_ENGINE = 'postgresql'
+        DB_NAME = 'test_db'
+        DB_USER = 'test_user'
+        DB_PASSWORD = 'test_password'
+        DB_HOST = 'localhost'
+        DB_PORT = '5432'
+        SECRET_KEY = 'test-secret-key-for-ci'
+        DJANGO_ALLOWED_HOSTS = 'localhost,127.0.0.1'
+    }
+    
+    stages {
+        stage('Checkout') {
+            steps {
+                git branch: 'main', url: 'https://github.com/alx-backend-python/messaging_app.git'
+            }
+        }
+        
+        stage('Setup Environment') {
+            steps {
+                sh 'python -m venv venv'
+                sh 'source venv/bin/activate || venv\\Scripts\\activate'
+                sh 'pip install --upgrade pip'
+                sh 'pip install -r requirements.txt'
+            }
+        }
+        
+        stage('Run Tests') {
+            steps {
+                sh 'python manage.py test --verbosity=2'
+            }
+            post {
+                always {
+                    publishTestResults testResultsPattern: 'test-reports/*.xml'
+                }
+            }
+        }
+        
+        stage('Generate Test Report') {
+            steps {
+                sh 'python -m pytest --junitxml=test-reports/results.xml'
+            }
+            post {
+                always {
+                    publishTestResults testResultsPattern: 'test-reports/results.xml'
+                }
+            }
+        }
+        
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    docker.build("messaging-app:${env.BUILD_ID}")
+                }
+            }
+        }
+        
+        stage('Push Docker Image') {
+            steps {
+                script {
+                    docker.withRegistry('https://index.docker.io/v1/', 'docker-hub-credentials') {
+                        docker.image("messaging-app:${env.BUILD_ID}").push()
+                        docker.image("messaging-app:${env.BUILD_ID}").push('latest')
+                    }
+                }
+            }
+        }
+    }
+    
+    post {
+        always {
+            cleanWs()
+        }
+    }
+}
