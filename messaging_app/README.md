@@ -25,7 +25,10 @@ Install the following plugins in Jenkins:
 
 ### 4. Configure GitHub Credentials
 
-Add your GitHub credentials in Jenkins to allow access to the repository.
+Add your GitHub credentials in Jenkins with the ID `github-credentials` to allow access to the repository:
+1. Go to Jenkins > Manage Jenkins > Manage Credentials
+2. Add new credentials with the ID `github-credentials`
+3. Configure the credentials with your GitHub username and personal access token
 
 ## GitHub Actions Workflows
 
@@ -57,8 +60,9 @@ The following environment variables need to be set in GitHub Secrets:
 ## Jenkinsfile
 
 The Jenkinsfile contains the pipeline configuration for:
-- Checking out code from GitHub
+- Checking out code from GitHub using credentials
 - Setting up the Python environment
+- Installing dependencies with pip3 from requirements.txt
 - Running tests with pytest
 - Generating test reports
 - Building and pushing Docker images

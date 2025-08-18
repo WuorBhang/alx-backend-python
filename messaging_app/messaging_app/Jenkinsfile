@@ -19,7 +19,9 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/alx-backend-python/messaging_app.git'
+                git branch: 'main', 
+                    url: 'https://github.com/alx-backend-python/messaging_app.git',
+                    credentialsId: 'github-credentials'
             }
         }
         
@@ -27,8 +29,8 @@ pipeline {
             steps {
                 sh 'python -m venv venv'
                 sh 'source venv/bin/activate || venv\\Scripts\\activate'
-                sh 'pip install --upgrade pip'
-                sh 'pip install -r requirements.txt'
+                sh 'pip3 install --upgrade pip'
+                sh 'pip3 install -r messaging_app/requirements.txt'
             }
         }
         
